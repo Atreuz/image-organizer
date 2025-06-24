@@ -1,6 +1,5 @@
 // utils/generatePdf.ts
 import { PDFDocument } from 'pdf-lib';
-import { calculateGrid } from './gridUtils';
 
 interface ImageData {
   url: string;
