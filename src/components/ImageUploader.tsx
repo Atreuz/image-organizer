@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { generatePdf } from '@/utils/generatePdf';
 import { Upload, FileText, LayoutGrid, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 
 export default function ImageUploader() {
   const [images, setImages] = useState<{ url: string; type: string }[]>([]);
@@ -129,11 +130,14 @@ export default function ImageUploader() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {images.map((img, index) => (
               <div key={index} className="relative group border rounded-xl overflow-hidden shadow-md hover:shadow-lg transition">
-                <img
+                <Image
                   src={img.url}
                   alt={`img-${index}`}
+                  width={300} 
+                  height={160}
                   className="w-full h-40 object-cover"
                 />
+
                 <button
                   type="button"
                   onClick={() => handleRemoveImage(index)}
