@@ -1,57 +1,27 @@
 // ImageUploader.tsx
 'use client';
 
+const isMobile = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+};
+
 import React, { useState } from 'react';
-import { generatePdf } from '@/utils/generatePdf';
 import { Upload, FileText, LayoutGrid, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useImageHandler } from '@/hooks/useImageHandler';
+import { usePdfGenerator } from '@/hooks/usePdfGenerator';
 
 export default function ImageUploader() {
-  const [images, setImages] = useState<{ url: string; type: string }[]>([]);
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
   const [imagesPerPage, setImagesPerPage] = useState(4);
   const [columns, setColumns] = useState(2);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    const fileArray = Array.from(files).filter(file => allowedTypes.includes(file.type));
-    if (fileArray.length < files.length) {
-      alert('Solo se permiten imágenes JPG y PNG para el PDF.');
-    }
-
-    const imageObjs = fileArray.map(file => ({
-      url: URL.createObjectURL(file),
-      type: file.type,
-    }));
-
-    setImages(prev => [...prev, ...imageObjs]);
-    e.target.value = ""; // Resetear el input para permitir subir los mismos archivos de nuevo
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
+  
+  const { images, handleFileChange, removeImage, clearImages } = useImageHandler();
+  const { pdfUrl, showModal, handleGeneratePdf, closeModal } = usePdfGenerator();
 
   const handleGenerate = async () => {
-    if (images.length === 0) {
-      alert('No hay imágenes para generar el PDF.');
-      return;
-    }
-
-    try {
-      const blob = await generatePdf(images, pageSize, imagesPerPage, columns);
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setShowModal(true); // Mostrar modal al generar
-    } catch (err) {
-      alert('Error al generar el PDF. Intenta nuevamente.');
-      console.error(err);
-    }
+    await handleGeneratePdf(images, pageSize, imagesPerPage, columns);
   };
 
   const handlePrint = () => {
@@ -64,6 +34,11 @@ export default function ImageUploader() {
         });
       }
     }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileChange(e.target.files);
+    e.target.value = ""; // Resetear el input para permitir subir los mismos archivos de nuevo
   };
 
   return (
@@ -79,12 +54,11 @@ export default function ImageUploader() {
           type="file"
           accept="image/*"
           multiple
-          onChange={handleFileChange}
+          onChange={handleFileInputChange}
           className="hidden"
         />
       </label>
 
-      {/* Panel de controles SIEMPRE solo */}
       <div className="flex flex-col items-center justify-center gap-6 sm:gap-8 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-6 w-full max-w-3xl">
           <div className="w-full">
@@ -141,11 +115,10 @@ export default function ImageUploader() {
         </div>
       </div>
 
-      {/* Vista previa de imágenes DEBAJO y SEPARADA del panel de control, en su propio contenedor */}
       {images.length > 0 && (
         <div className="mt-8 sm:mt-10 relative max-w-6xl mx-auto border border-blue-200 bg-blue-50 rounded-2xl p-3 sm:p-6 shadow-lg">
           <button
-            onClick={() => setImages([])}
+            onClick={clearImages}
             className="absolute top-2 right-2 sm:top-3 sm:right-3 text-blue-500 hover:text-red-600 text-lg sm:text-xl font-bold bg-white/70 rounded-full px-2 py-1 sm:px-3 shadow"
             title="Cerrar vista previa de imágenes"
           >
@@ -164,7 +137,7 @@ export default function ImageUploader() {
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={() => removeImage(index)}
                   className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
                   title="Eliminar imagen"
                 >
@@ -176,12 +149,11 @@ export default function ImageUploader() {
         </div>
       )}
 
-      {/* Modal para PDF con fondo borroso */}
       {showModal && pdfUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 px-2">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg sm:max-w-2xl md:max-w-3xl w-full p-2 sm:p-6 relative flex flex-col">
             <button
-              onClick={() => setShowModal(false)}
+              onClick={closeModal}
               className="absolute top-2 right-2 sm:top-3 sm:right-3 text-gray-500 hover:text-gray-800 text-xl sm:text-2xl font-bold"
               title="Cerrar"
             >
@@ -195,12 +167,22 @@ export default function ImageUploader() {
                 className="w-full h-full"
               />
             </div>
-            <button
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 sm:px-6 rounded-xl shadow transition self-center text-base sm:text-lg"
-            >
-              Imprimir PDF
-            </button>
+            {isMobile() ? (
+              <a
+                href={pdfUrl}
+                download="documento.pdf"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 sm:px-6 rounded-xl shadow transition self-center text-base sm:text-lg text-center"
+              >
+                Descargar PDF
+              </a>
+            ) : (
+              <button
+                onClick={handlePrint}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 sm:px-6 rounded-xl shadow transition self-center text-base sm:text-lg"
+              >
+                Imprimir PDF
+              </button>
+            )}
           </div>
         </div>
       )}
