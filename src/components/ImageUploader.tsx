@@ -11,11 +11,16 @@ import { Upload, FileText, LayoutGrid, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useImageHandler } from '@/hooks/useImageHandler';
 import { usePdfGenerator } from '@/hooks/usePdfGenerator';
+import dynamic from 'next/dynamic';
+import ImageCropperModal from './ImageCropperModal';
 
 export default function ImageUploader() {
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
   const [imagesPerPage, setImagesPerPage] = useState(4);
   const [columns, setColumns] = useState(2);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageIndex, setCropImageIndex] = useState<number | null>(null);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
   
   const { images, handleFileChange, removeImage, clearImages } = useImageHandler();
   const { pdfUrl, showModal, handleGeneratePdf, closeModal } = usePdfGenerator();
@@ -39,6 +44,27 @@ export default function ImageUploader() {
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFileChange(e.target.files);
     e.target.value = ""; // Resetear el input para permitir subir los mismos archivos de nuevo
+  };
+
+  const handleOpenCropModal = (index: number) => {
+    setCropImageIndex(index);
+    setCropImageUrl(images[index].url);
+    setCropModalOpen(true);
+  };
+
+  const handleCloseCropModal = () => {
+    setCropModalOpen(false);
+    setCropImageIndex(null);
+    setCropImageUrl(null);
+  };
+
+  const handleCropImage = (croppedDataUrl: string) => {
+    if (cropImageIndex !== null) {
+      // Actualiza la imagen recortada en el arreglo de imágenes
+      images[cropImageIndex].url = croppedDataUrl;
+      // Si usas un setImages, deberías hacerlo aquí para forzar el render
+      // setImages([...images]);
+    }
   };
 
   return (
@@ -135,19 +161,37 @@ export default function ImageUploader() {
                   height={160}
                   className="w-full h-28 sm:h-40 object-cover"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
-                  title="Eliminar imagen"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="absolute top-1 right-1 sm:top-2 sm:right-2 flex gap-1 sm:gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCropModal(index)}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
+                    title="Recortar imagen"
+                  >
+                    ✂️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeImage(index)}
+                    className="bg-red-600 hover:bg-red-700 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
+                    title="Eliminar imagen"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Modal de recorte */}
+      <ImageCropperModal
+        open={cropModalOpen && !!cropImageUrl}
+        imageUrl={cropImageUrl || ''}
+        onClose={handleCloseCropModal}
+        onCrop={handleCropImage}
+      />
 
       {showModal && pdfUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 px-2">
