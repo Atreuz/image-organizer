@@ -7,7 +7,7 @@ const isMobile = () => {
 };
 
 import React, { useState } from 'react';
-import { Upload, FileText, LayoutGrid, Trash2 } from 'lucide-react';
+import { Upload, FileText, LayoutGrid, Trash2, Scissors } from 'lucide-react';
 import Image from 'next/image';
 import { useImageHandler } from '@/hooks/useImageHandler';
 import { usePdfGenerator } from '@/hooks/usePdfGenerator';
@@ -58,14 +58,13 @@ export default function ImageUploader() {
     setCropImageUrl(null);
   };
 
-  const handleCropImage = (croppedDataUrl: string) => {
-    if (cropImageIndex !== null) {
-      // Actualiza la imagen recortada en el arreglo de imágenes
-      images[cropImageIndex].url = croppedDataUrl;
-      // Si usas un setImages, deberías hacerlo aquí para forzar el render
-      // setImages([...images]);
-    }
-  };
+const handleCropImage = (croppedDataUrl: string) => {
+  if (cropImageIndex !== null) {
+    images[cropImageIndex].url = croppedDataUrl;
+    images[cropImageIndex].type = 'image/png'; // Asegura el tipo correcto
+    // Si usas setImages, hazlo aquí
+  }
+};
 
   return (
     <div className="space-y-6 px-2 sm:px-4 md:px-8 max-w-7xl mx-auto">
@@ -165,15 +164,15 @@ export default function ImageUploader() {
                   <button
                     type="button"
                     onClick={() => handleOpenCropModal(index)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
+                    className="bg-white hover:bg-gray-300 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
                     title="Recortar imagen"
                   >
-                    ✂️
+                     <Scissors className="w-4 h-4 text-black" />
                   </button>
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="bg-red-600 hover:bg-red-700 text-white rounded-full p-1 text-xs sm:text-sm shadow-md"
+                    className="bg-white text-red-500 hover:bg-red-500 hover:text-white rounded-full p-1 text-xs sm:text-sm shadow-md transition"
                     title="Eliminar imagen"
                   >
                     <Trash2 className="w-4 h-4" />
