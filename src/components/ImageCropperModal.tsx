@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import Cropper from 'react-cropper';
 import 'cropperjs/dist/cropper.css';
 import { Scissors, Trash2, X} from 'lucide-react';
@@ -16,9 +16,9 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ open, imageUrl, o
 
   const handleCrop = () => {
     setLoading(true);
-    const cropper = (cropperRef.current as any)?.cropper;
+    const cropper = (cropperRef.current as any)?.cropper as Cropper;
     if (cropper) {
-      const croppedDataUrl = cropper.getCroppedCanvas().toDataURL('image/png'); // Cambiado a PNG
+      const croppedDataUrl = cropper.getCroppedCanvas().toDataURL('image/png');
       onCrop(croppedDataUrl);
       onClose();
     }
