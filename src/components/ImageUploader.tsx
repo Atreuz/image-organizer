@@ -11,7 +11,6 @@ import { Upload, FileText, LayoutGrid, Trash2, Scissors } from 'lucide-react';
 import Image from 'next/image';
 import { useImageHandler } from '@/hooks/useImageHandler';
 import { usePdfGenerator } from '@/hooks/usePdfGenerator';
-import dynamic from 'next/dynamic';
 import ImageCropperModal from './ImageCropperModal';
 
 export default function ImageUploader() {
