@@ -16,7 +16,7 @@ const ImageCropperModal: React.FC<ImageCropperModalProps> = ({ open, imageUrl, o
 
   const handleCrop = () => {
     setLoading(true);
-    const cropper = (cropperRef.current as any)?.cropper as Cropper;
+    const cropper = (cropperRef.current as unknown as { cropper: Cropper })?.cropper;
     if (cropper) {
       const croppedDataUrl = cropper.getCroppedCanvas().toDataURL('image/png');
       onCrop(croppedDataUrl);
