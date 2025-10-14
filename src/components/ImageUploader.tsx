@@ -6,7 +6,7 @@ const isMobile = () => {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 };
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, FileText, LayoutGrid, Trash2, Scissors } from 'lucide-react';
 import Image from 'next/image';
 import { useImageHandler } from '@/hooks/useImageHandler';
@@ -65,23 +65,93 @@ const handleCropImage = (croppedDataUrl: string) => {
   }
 };
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [pasteHintVisible, setPasteHintVisible] = useState(false);
+
+  // Drag & Drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  }, [isDragging]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only reset if really leaving the container
+    if ((e.target as HTMLElement).id === 'drop-area') {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length) {
+      handleFileChange(files);
+    }
+  }, [handleFileChange]);
+
+  // Paste support (clipboard images)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const items = e.clipboardData.items;
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+            if (file) files.push(file);
+        }
+      }
+      if (files.length) {
+        // Crear un FileList simulado usando DataTransfer
+        const dataTransfer = new DataTransfer();
+        files.forEach(f => dataTransfer.items.add(f));
+        handleFileChange(dataTransfer.files);
+        setPasteHintVisible(true);
+        setTimeout(() => setPasteHintVisible(false), 2500);
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handleFileChange]);
+
   return (
     <div className="space-y-6 px-2 sm:px-4 md:px-8 max-w-7xl mx-auto">
-      <label htmlFor="file-upload" className="block cursor-pointer border-2 border-dashed border-blue-400 rounded-xl bg-blue-50 p-6 sm:p-8 transition hover:bg-blue-100 focus-within:ring-2 focus-within:ring-blue-400">
-        <div className="flex flex-col items-center justify-center gap-2 text-center min-h-[120px]">
+      <div
+        id="drop-area"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={[
+          'relative block cursor-pointer border-2 border-dashed rounded-xl p-6 sm:p-8 transition focus-within:ring-2 focus-within:ring-blue-400',
+          isDragging ? 'border-blue-600 bg-blue-100' : 'border-blue-400 bg-blue-50 hover:bg-blue-100'
+        ].join(' ')}
+      >
+        <label htmlFor="file-upload" className="absolute inset-0" aria-label="Subir imágenes" />
+        <div className="flex flex-col items-center justify-center gap-2 text-center min-h-[140px] pointer-events-none select-none">
           <Upload className="w-8 h-8 text-blue-600 mb-1" />
-          <span className="font-semibold text-blue-700 text-base sm:text-lg">Sube tus imágenes</span>
-          <span className="text-xs text-blue-500">JPG, PNG. Puedes seleccionar varias.</span>
+          <span className="font-semibold text-blue-700 text-base sm:text-lg">
+            {isDragging ? 'Suelta las imágenes aquí' : 'Sube / Arrastra tus imágenes'}
+          </span>
+          <span className="text-xs text-blue-500">JPG, PNG — también puedes pegar (Ctrl+V) imágenes.</span>
+          {pasteHintVisible && (
+            <span className="text-xs text-green-600 animate-fade-in">Imágenes pegadas añadidas ✅</span>
+          )}
         </div>
         <input
           id="file-upload"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFileInputChange}
-          className="hidden"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
         />
-      </label>
+      </div>
 
       <div className="flex flex-col items-center justify-center gap-6 sm:gap-8 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 gap-x-6 w-full max-w-3xl">
