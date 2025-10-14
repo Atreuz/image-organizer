@@ -72,6 +72,7 @@ export async function generatePdf(
   }
 
   const pdfBytes = await pdfDoc.save();
-  return new Blob([pdfBytes], { type: 'application/pdf' });
+  const cleanBytes = new Uint8Array(pdfBytes); 
+  return new Blob([cleanBytes as unknown as BlobPart], { type: 'application/pdf' });
 }
 
